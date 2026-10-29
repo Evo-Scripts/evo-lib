@@ -1,0 +1,559 @@
+@import "tailwindcss";
+
+/*
+ * Evo look: near-black surfaces, the 12deg slant on every frame, cyan accent (player configurable through
+ * --evo-accent, set from EvoConfig.UI.Accent), fine pinstripes on surfaces and 45deg hatching inside fills.
+ * Target runtime is FiveM CEF (Chromium 103): no color-mix(), no :has(), no large backdrop blurs.
+ */
+
+:root {
+	--evo-bg: #0b0d11;
+	--evo-surface: rgba(16, 19, 24, 0.92);
+	--evo-surface-2: #151920;
+	--evo-surface-3: #1c212a;
+	--evo-line: rgba(125, 235, 255, 0.1);
+	--evo-line-strong: rgba(125, 235, 255, 0.22);
+
+	/* Overwritten at runtime by App.tsx when the accent changes. */
+	--evo-accent: #19d3f5;
+	--evo-accent-rgb: 25, 211, 245;
+	--evo-accent-hi: #7debff;
+	--evo-accent-lo: #0a6f94;
+	--evo-accent-ink: #06141a;
+
+	--evo-text: #eef2f6;
+	--evo-muted: #8a96a6;
+	--evo-dim: #525c6b;
+
+	--evo-success: #3ee6a0;
+	--evo-success-rgb: 62, 230, 160;
+	--evo-warning: #ffb547;
+	--evo-warning-rgb: 255, 181, 71;
+	--evo-danger: #ff4d6a;
+	--evo-danger-rgb: 255, 77, 106;
+	--evo-info: #7debff;
+	--evo-info-rgb: 125, 235, 255;
+
+	--evo-skew: -12deg;
+	--evo-unskew: 12deg;
+	--evo-radius: 10px;
+	--evo-radius-sm: 6px;
+	--evo-ease: cubic-bezier(0.16, 1, 0.3, 1);
+	--evo-fast: 160ms;
+	--evo-slow: 240ms;
+
+	--evo-font-display: "Archivo Variable", "Archivo", ui-sans-serif, system-ui, sans-serif;
+	--evo-font-ui: "Inter Tight Variable", "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+	--evo-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+	--evo-pinstripe: repeating-linear-gradient(
+		-78deg,
+		rgba(255, 255, 255, 0.04) 0,
+		rgba(255, 255, 255, 0.04) 1px,
+		transparent 1px,
+		transparent 6px
+	);
+	--evo-hatch: repeating-linear-gradient(
+		45deg,
+		rgba(255, 255, 255, 0.13) 0,
+		rgba(255, 255, 255, 0.13) 1px,
+		transparent 1px,
+		transparent 4px
+	);
+}
+
+/* 16px at 1920 wide; every rem based size scales with the game resolution. */
+html {
+	font-size: clamp(11px, 0.8333vw, 24px);
+}
+
+html,
+body,
+#root {
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	overflow: hidden;
+	background: transparent;
+	user-select: none;
+}
+
+body {
+	font-family: var(--evo-font-ui);
+	color: var(--evo-text);
+	-webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Shared vocabulary
+ * --------------------------------------------------------------------------------------------- */
+
+/* Slant panel: the frame is skewed on a pseudo element so the text inside stays upright and crisp. */
+.evo-slant {
+	position: relative;
+	isolation: isolate;
+}
+.evo-slant::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	transform: skewX(var(--evo-skew));
+	border: 1px solid var(--evo-line);
+	border-radius: var(--evo-radius);
+	background: var(--evo-pinstripe), var(--evo-surface);
+	box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.35);
+}
+
+.evo-display {
+	font-family: var(--evo-font-display);
+	font-stretch: 125%;
+	font-weight: 850;
+	text-transform: uppercase;
+	letter-spacing: -0.01em;
+	line-height: 1;
+}
+
+.evo-mono {
+	font-family: var(--evo-font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.32em;
+	font-size: 0.625rem;
+	font-weight: 500;
+	line-height: 1;
+}
+
+/* Key cap: small skewed box, mono letter, accent border + glow (it is the single active element). */
+.evo-key {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.75rem;
+	height: 2.75rem;
+	padding: 0 0.6rem;
+	isolation: isolate;
+	font-family: var(--evo-font-mono);
+	font-size: 1.05rem;
+	font-weight: 600;
+	color: var(--evo-accent-hi);
+}
+.evo-key::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	transform: skewX(var(--evo-skew));
+	border: 1px solid var(--evo-accent);
+	border-radius: var(--evo-radius-sm);
+	background: linear-gradient(180deg, rgba(var(--evo-accent-rgb), 0.16), rgba(var(--evo-accent-rgb), 0.04)), var(--evo-surface-2);
+	box-shadow:
+		0 0 0.9rem rgba(var(--evo-accent-rgb), 0.45),
+		inset 0 -2px 0 rgba(var(--evo-accent-rgb), 0.55);
+}
+.evo-key--sm {
+	min-width: 1.5rem;
+	height: 1.5rem;
+	padding: 0 0.35rem;
+	font-size: 0.6875rem;
+	color: var(--evo-text);
+}
+.evo-key--sm::before {
+	border-color: var(--evo-line-strong);
+	background: var(--evo-surface-3);
+	box-shadow: inset 0 -2px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Small skewed accent bar placed left of titles. */
+.evo-tick {
+	display: inline-block;
+	width: 0.35rem;
+	height: 0.9rem;
+	flex: none;
+	transform: skewX(var(--evo-skew));
+	border-radius: 2px;
+	background: linear-gradient(180deg, var(--evo-accent-hi), var(--evo-accent) 45%, var(--evo-accent-lo));
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Notifications: slant cards with a coloured left slash
+ * --------------------------------------------------------------------------------------------- */
+
+.evo-toast {
+	--tone: var(--evo-info);
+	--tone-rgb: var(--evo-info-rgb);
+	width: 22rem;
+	padding: 0.85rem 1.5rem 1.15rem 2.15rem;
+}
+.evo-toast::before {
+	background:
+		linear-gradient(90deg, rgba(var(--tone-rgb), 0.1), transparent 40%),
+		var(--evo-pinstripe),
+		var(--evo-surface);
+}
+
+.evo-toast__slash {
+	position: absolute;
+	top: 0.6rem;
+	bottom: 0.6rem;
+	left: 0.85rem;
+	width: 0.3rem;
+	transform: skewX(var(--evo-skew));
+	border-radius: 2px;
+	background: var(--evo-hatch), var(--tone);
+}
+
+.evo-toast__head {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	min-width: 0;
+}
+
+.evo-toast__glyph {
+	position: relative;
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	justify-content: center;
+	width: 1.5rem;
+	height: 1.5rem;
+	isolation: isolate;
+	color: var(--tone);
+}
+.evo-toast__glyph::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	transform: skewX(var(--evo-skew));
+	border: 1px solid rgba(var(--tone-rgb), 0.55);
+	border-radius: 4px;
+	background: rgba(var(--tone-rgb), 0.12);
+}
+.evo-toast__glyph svg {
+	width: 0.8rem;
+	height: 0.8rem;
+}
+
+.evo-toast__title {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 0.95rem;
+	color: var(--evo-text);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.evo-toast__meta {
+	margin: 0.5rem 0 0.35rem;
+	color: rgba(var(--tone-rgb), 0.85);
+}
+.evo-toast__meta span {
+	color: var(--evo-dim);
+}
+
+.evo-toast__body {
+	font-size: 0.84rem;
+	line-height: 1.4;
+	color: var(--evo-muted);
+}
+.evo-toast__body strong {
+	font-weight: 600;
+	color: var(--evo-text);
+}
+.evo-toast__body code {
+	font-family: var(--evo-font-mono);
+	font-size: 0.78rem;
+	color: var(--evo-accent-hi);
+}
+
+.evo-toast__count {
+	margin-left: auto;
+	flex: none;
+	color: var(--evo-accent-ink);
+	position: relative;
+	isolation: isolate;
+	padding: 0.25rem 0.5rem 0.25rem 0.6rem;
+	letter-spacing: 0.08em;
+	font-weight: 600;
+}
+.evo-toast__count::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	transform: skewX(var(--evo-skew));
+	border-radius: 3px;
+	background: var(--tone);
+}
+
+/* Lifetime bar along the bottom edge of the card, following the slant. */
+.evo-toast__timer {
+	position: absolute;
+	right: 1.4rem;
+	bottom: 0.5rem;
+	left: 2rem;
+	height: 2px;
+	overflow: hidden;
+	transform: skewX(var(--evo-skew));
+	background: rgba(255, 255, 255, 0.05);
+}
+.evo-toast__timer > div {
+	height: 100%;
+	transform-origin: left center;
+	background: var(--tone);
+	animation-name: evo-timer;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+@keyframes evo-timer {
+	from { transform: scaleX(1); }
+	to { transform: scaleX(0); }
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Progress: bottom-centre slant panel, Archivo label above a segmented skewed track
+ * --------------------------------------------------------------------------------------------- */
+
+.evo-progress {
+	--tone: var(--evo-accent);
+	--tone-rgb: var(--evo-accent-rgb);
+	--tone-hi: var(--evo-accent-hi);
+	--tone-lo: var(--evo-accent-lo);
+	width: 30rem;
+	padding: 1rem 1.9rem 0.95rem;
+}
+.evo-progress--cancelled {
+	--tone: var(--evo-danger);
+	--tone-rgb: var(--evo-danger-rgb);
+	--tone-hi: #ff8a9d;
+	--tone-lo: #8f1f33;
+}
+
+.evo-progress__top {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+}
+.evo-progress__label {
+	min-width: 0;
+	overflow: hidden;
+	font-size: 1.35rem;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.evo-progress__percent {
+	margin-left: auto;
+	flex: none;
+	font-family: var(--evo-font-mono);
+	font-size: 1rem;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+	color: var(--tone);
+}
+.evo-progress__percent small {
+	margin-left: 0.1rem;
+	font-size: 0.65rem;
+	color: var(--evo-dim);
+}
+.evo-progress__desc {
+	margin-top: 0.35rem;
+	overflow: hidden;
+	font-size: 0.8rem;
+	color: var(--evo-muted);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.evo-track {
+	display: flex;
+	gap: 0.22rem;
+	height: 0.8rem;
+	margin: 0.8rem 0 0.7rem;
+}
+.evo-track__cell {
+	position: relative;
+	flex: 1;
+	overflow: hidden;
+	transform: skewX(var(--evo-skew));
+	border: 1px solid var(--evo-line);
+	border-radius: 3px;
+	background: var(--evo-surface-3);
+}
+.evo-track__fill {
+	position: absolute;
+	inset: 0 auto 0 0;
+	background: var(--evo-hatch), linear-gradient(180deg, var(--tone-hi), var(--tone) 50%, var(--tone-lo));
+	background-size: 8px 8px, 100% 100%;
+	animation: evo-hatch-run 600ms linear infinite;
+}
+/* The leading cell is the one active element: it gets the glow. */
+.evo-track__cell--lead {
+	border-color: rgba(var(--tone-rgb), 0.7);
+	box-shadow: 0 0 0.7rem rgba(var(--tone-rgb), 0.55);
+}
+
+@keyframes evo-hatch-run {
+	from { background-position: 0 0, 0 0; }
+	to { background-position: 8px 0, 0 0; }
+}
+
+.evo-progress__foot {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--evo-dim);
+}
+.evo-progress__time {
+	font-variant-numeric: tabular-nums;
+	color: var(--evo-muted);
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Text UI: key cap + label chip docked to an edge
+ * --------------------------------------------------------------------------------------------- */
+
+.evo-textui {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+}
+.evo-textui--right {
+	flex-direction: row-reverse;
+}
+
+.evo-textui__cap {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4rem;
+}
+.evo-textui__cap .evo-mono {
+	font-size: 0.5rem;
+	letter-spacing: 0.4em;
+	color: var(--evo-dim);
+}
+
+.evo-textui__chip {
+	display: flex;
+	max-width: 19rem;
+	flex-direction: column;
+	gap: 0.3rem;
+	padding: 0.7rem 1.4rem 0.75rem 1.3rem;
+}
+.evo-textui__label {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-size: 0.95rem;
+	font-weight: 600;
+	color: var(--evo-text);
+}
+.evo-textui__desc {
+	padding-left: 0.9rem;
+	font-size: 0.78rem;
+	line-height: 1.35;
+	color: var(--evo-muted);
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Motion: slide + un-skew on enter, short and decisive, no bounce
+ * --------------------------------------------------------------------------------------------- */
+
+.evo-in-right { animation: evo-in-right var(--evo-slow) var(--evo-ease) both; }
+.evo-in-left { animation: evo-in-left var(--evo-slow) var(--evo-ease) both; }
+.evo-in-up { animation: evo-in-up var(--evo-slow) var(--evo-ease) both; }
+.evo-in-down { animation: evo-in-down var(--evo-slow) var(--evo-ease) both; }
+.evo-out { animation: evo-out var(--evo-fast) ease-in both; }
+
+/* The frame already rests at -12deg; the extra -8deg makes it enter at -20deg. */
+@keyframes evo-in-right {
+	from { opacity: 0; transform: translateX(12px) skewX(-8deg); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes evo-in-left {
+	from { opacity: 0; transform: translateX(-12px) skewX(-8deg); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes evo-in-up {
+	from { opacity: 0; transform: translateY(10px) skewX(-8deg); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes evo-in-down {
+	from { opacity: 0; transform: translateY(-10px) skewX(-8deg); }
+	to { opacity: 1; transform: none; }
+}
+@keyframes evo-out {
+	from { opacity: 1; }
+	to { opacity: 0; transform: translateX(8px) skewX(-6deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.evo-in-right,
+	.evo-in-left,
+	.evo-in-up,
+	.evo-in-down,
+	.evo-out,
+	.evo-track__fill {
+		animation-duration: 1ms;
+		animation-iteration-count: 1;
+	}
+}
+
+/* ------------------------------------------------------------------------------------------------
+ * Browser dev panel (never shown in game)
+ * --------------------------------------------------------------------------------------------- */
+
+.evo-dev {
+	width: 18rem;
+	padding: 0.9rem 1.4rem 1rem;
+}
+.evo-dev__section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	margin-top: 0.85rem;
+}
+.evo-dev__section > .evo-mono {
+	color: var(--evo-dim);
+}
+.evo-ghost {
+	position: relative;
+	isolation: isolate;
+	padding: 0.35rem 0.6rem;
+	font-family: var(--evo-font-mono);
+	font-size: 0.6875rem;
+	color: var(--evo-muted);
+	text-align: center;
+	cursor: pointer;
+	transition: color var(--evo-fast) var(--evo-ease);
+}
+.evo-ghost::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	transform: skewX(var(--evo-skew));
+	border: 1px solid var(--evo-line-strong);
+	border-radius: var(--evo-radius-sm);
+	background: var(--evo-surface-2);
+	transition: border-color var(--evo-fast) var(--evo-ease);
+}
+.evo-ghost:hover,
+.evo-ghost--on {
+	color: var(--evo-accent-hi);
+}
+.evo-ghost:hover::before,
+.evo-ghost--on::before {
+	border-color: var(--evo-accent);
+}
+.evo-ghost:focus-visible {
+	outline: none;
+	color: var(--evo-accent-hi);
+}
+.evo-ghost:focus-visible::before {
+	border-color: var(--evo-accent);
+	box-shadow: 0 0 0 2px rgba(var(--evo-accent-rgb), 0.35);
+}
